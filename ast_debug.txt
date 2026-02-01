@@ -1,0 +1,127 @@
+Program {
+  TypeAlias {
+    Original = BuiltinType(Name = _Int)
+    Alias = Int32
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Long)
+    Alias = Int64
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Short)
+    Alias = Int16
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Byte)
+    Alias = Int8
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Float)
+    Alias = Float32
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Double)
+    Alias = Float64
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Bool)
+    Alias = Bool
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _Unit)
+    Alias = Unit
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _UInt)
+    Alias = UInt32
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _ULong)
+    Alias = UInt64
+  }
+  TypeAlias {
+    Original = BuiltinType(Name = _UByte)
+    Alias = UInt8
+  }
+  FunctionDecl {
+    Name = demoDefer
+    Generics = 
+    ReturnType = NamedType(Name = Unit)
+    Params = 
+    Body = 
+    ExprStmt {
+      Call {
+        Callee = Identifier(Name = @stdio_printf)
+        TypeArgs = 
+        Args = Literal(Value = "Starting function\n", Type = L_STRING)
+      }
+    }
+    DeferStmt {
+      Body = 
+      ExprStmt {
+        Call {
+          Callee = Identifier(Name = @stdio_printf)
+          TypeArgs = 
+          Args = Literal(Value = "First defer executed\n", Type = L_STRING)
+        }
+      }
+    }
+    DeferStmt {
+      Body = 
+      ExprStmt {
+        Call {
+          Callee = Identifier(Name = @stdio_printf)
+          TypeArgs = 
+          Args = Literal(Value = "Second defer executed\n", Type = L_STRING)
+        }
+      }
+    }
+    ExprStmt {
+      Call {
+        Callee = Identifier(Name = @stdio_printf)
+        TypeArgs = 
+        Args = Literal(Value = "End of function\n", Type = L_STRING)
+      }
+    }
+  }
+  VarDecl {
+    Name = x
+    Type = NamedType(Name = Int32)
+    Init = Literal(Value = "10", Type = L_INTEGER)
+    Mutable = true
+  }
+  WhileStmt {
+    Condition =     BinaryOp(Op = >) {
+      Left = Identifier(Name = x)
+      Right = Literal(Value = "0", Type = L_INTEGER)
+    }
+    Body = 
+    ExprStmt {
+      Call {
+        Callee = Identifier(Name = @stdio_printf)
+        TypeArgs = 
+        Args = Literal(Value = "x = %d\n", Type = L_STRING), Identifier(Name = x)
+      }
+    }
+    ExprStmt {
+      UnaryOp(Op = --, Mode = postfix) {
+        Expr = Identifier(Name = x)
+      }
+    }
+    IfStmt {
+      Condition =       BinaryOp(Op = ==) {
+        Left = Identifier(Name = x)
+        Right = Literal(Value = "5", Type = L_INTEGER)
+      }
+      Then = 
+      ExprStmt {
+        Call {
+          Callee = Identifier(Name = @stdio_printf)
+          TypeArgs = 
+          Args = Literal(Value = "Breaking the loop at x = %d\n", Type = L_STRING), Identifier(Name = x)
+        }
+      }
+BreakStmt
+    }
+  }
+}
