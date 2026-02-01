@@ -188,10 +188,10 @@ class ASTDebugPrint : NodeVisitor<String> {
     }
 
     override fun visitBreakStmt(breakStmt: BreakStmt): String {
-        return "BreakStmt"
+        return "${currentIndent}BreakStmt"
     }
 
     override fun visitContinueStmt(continueStmt: ContinueStmt): String {
-        return "ContinueStmt"
+        return "${currentIndent}ContinueStmt"
     }
 }
