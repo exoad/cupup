@@ -1,4 +1,4 @@
-package net.exoad.k.diagnostics
+package net.exoad.cuu.diagnostics
 
 /**
  * Simple TUI symbols for the K compiler

@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 /**
  * Semantical tokens representing each part of text that was parsed

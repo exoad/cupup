@@ -1,6 +1,6 @@
-package net.exoad.k.diagnostics
+package net.exoad.cuu.diagnostics
 
-import net.exoad.k.SourcePosition
+import net.exoad.cuu.SourcePosition
 
 enum class DiagnosticLevel {
     ERROR,

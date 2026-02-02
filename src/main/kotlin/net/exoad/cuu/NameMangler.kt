@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 object NameMangler {
     const val MANGLING_ENABLED: Boolean = false

@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 class CharacterBuffer(content: String) {
     private val chars = (content + '\u0000').toCharArray()

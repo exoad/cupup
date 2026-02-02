@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 object CLang {
     fun ppAttribute(attribute: String): String {

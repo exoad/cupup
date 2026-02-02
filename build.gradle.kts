@@ -19,7 +19,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("net.exoad.k.MainKt")
+    mainClass.set("net.exoad.cuu.MainKt")
 }
 
 tasks.test {

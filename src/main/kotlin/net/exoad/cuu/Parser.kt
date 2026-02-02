@@ -1,7 +1,7 @@
-package net.exoad.k
+package net.exoad.cuu
 
-import net.exoad.k.diagnostics.DiagnosticCollector
-import net.exoad.k.diagnostics.SourceSpan
+import net.exoad.cuu.diagnostics.DiagnosticCollector
+import net.exoad.cuu.diagnostics.SourceSpan
 
 class Parser(
     private val tokens: List<Token>,

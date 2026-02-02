@@ -1,4 +1,4 @@
-package net.exoad.k.diagnostics
+package net.exoad.cuu.diagnostics
 
 import kotlin.system.exitProcess
 

@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 class ASTDebugPrint : NodeVisitor<String> {
     private var currentIndent = ""

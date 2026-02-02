@@ -1,6 +1,6 @@
-package net.exoad.k
+package net.exoad.cuu
 
-import net.exoad.k.diagnostics.*
+import net.exoad.cuu.diagnostics.*
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -22,7 +22,7 @@ private fun bold(
 }
 
 fun main() {
-    val inputFile = "input.k"
+    val inputFile = "input.cuu"
     val outputFile = "output.c"
     try {
         println(
@@ -61,7 +61,6 @@ fun main() {
             println()
         }
         File("ast_debug.txt").writeText(ASTDebugPrint().visitModule(program))
-
 //        val transpiler = Transpiler()
 //        program.accept(transpiler)
 //        File(outputFile).writeText(transpiler.sb.toString())

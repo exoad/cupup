@@ -1,4 +1,4 @@
-package net.exoad.k
+package net.exoad.cuu
 
 class Transpiler : NodeVisitor<Unit> {
     val sb = StringBuilder()

@@ -1,7 +1,7 @@
-package net.exoad.k.diagnostics
+package net.exoad.cuu.diagnostics
 
-import net.exoad.k.SourcePosition
-import net.exoad.k.Token
+import net.exoad.cuu.SourcePosition
+import net.exoad.cuu.Token
 import kotlin.collections.iterator
 
 /**

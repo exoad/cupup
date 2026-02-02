@@ -1,6 +1,6 @@
-package net.exoad.k
+package net.exoad.cuu
 
-import net.exoad.k.diagnostics.*
+import net.exoad.cuu.diagnostics.*
 
 /**
  * Performs lint analysis on tokens to detect code quality issues
