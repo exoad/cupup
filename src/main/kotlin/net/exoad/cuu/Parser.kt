@@ -2,6 +2,7 @@ package net.exoad.cuu
 
 import net.exoad.cuu.diagnostics.DiagnosticCollector
 import net.exoad.cuu.diagnostics.SourceSpan
+import kotlin.collections.emptyList
 
 class Parser(
     private val tokens: List<Token>,
@@ -92,7 +93,7 @@ class Parser(
     fun parseProgram(): Module {
         if (!at(Token.Type.K_MOD)) {
             diagnostics.reportError(
-                "Missing module declaration",
+                "Missing module declaration. Instead got ${peek().type.name}",
                 SourceSpan.single(SourcePosition(1, 1)),
                 "Add 'mod <module_name>' at the top of the file, for example: 'mod mymodule'",
                 "P001"
@@ -124,6 +125,7 @@ class Parser(
     private fun parseStatement(): Stmt {
         skipWhitespace()
         when {
+            at(Token.Type.K_RECORD) -> return parseRecordDecl(emptyList())
             at(Token.Type.K_FX) -> return parseFunctionDecl()
             at(Token.Type.K_ALIAS) -> return parseTypeAlias()
             at(Token.Type.K_IF) -> return parseIfStmt()
@@ -133,10 +135,12 @@ class Parser(
                 advance()
                 return BreakStmt()
             }
+
             at(Token.Type.K_CONTINUE) -> {
                 advance()
                 return ContinueStmt()
             }
+
             at(Token.Type.IDENTIFIER) || at(Token.Type.K_MUT) -> {
                 val typePos = if (at(Token.Type.K_MUT)) 3 else 2
                 if (peek(typePos - 1).type == Token.Type.S_COLON && peek(
@@ -170,7 +174,7 @@ class Parser(
         return ExprStmt(expr)
     }
 
-    private fun parseVarDecl(): VarDecl {
+    private fun parseVarDecl(): VariableDecl {
         val isMutable = expectOptional(Token.Type.K_MUT)
         val nameToken = peek()
         advance()
@@ -179,7 +183,7 @@ class Parser(
         expect(Token.Type.S_EQUAL, "Variable declarations require an initializer, e.g., let x: Int = value")
         val init = parseExpression()
         skipWhitespace()
-        return VarDecl(nameToken.content, type, init, isMutable)
+        return VariableDecl(nameToken.content, type, init)
     }
 
     private fun parseExpression(): Expr {
@@ -216,6 +220,7 @@ class Parser(
                 val right = parseAssignment()
                 return BinaryOp(op, left, right)
             }
+
             else -> return left
         }
     }
@@ -397,14 +402,17 @@ class Parser(
                         raw.substring(2),
                         16
                     )
+
                     raw.startsWith("0b") || raw.startsWith("0B") -> Integer.parseInt(
                         raw.substring(2),
                         2
                     )
+
                     else -> Integer.parseInt(raw)
                 }
                 Literal.LInt(intValue)
             }
+
             Token.Type.L_FLOAT -> Literal.LFloat(token.content.toDouble())
             Token.Type.L_STRING -> Literal.LString(token.content)
             Token.Type.K_TRUE -> Literal.LBool(true)
@@ -484,6 +492,7 @@ class Parser(
                     ident
                 }
             }
+
             Token.Type.S_OPEN_PARENTHESIS -> {
                 val expr = parseExpression()
                 if (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
@@ -499,6 +508,7 @@ class Parser(
                 }
                 expr
             }
+
             Token.Type.S_EOF -> {
                 diagnostics.reportError(
                     "Unexpected end of file while parsing expression",
@@ -508,6 +518,7 @@ class Parser(
                 )
                 Literal.LInt(0)
             }
+
             else -> {
                 diagnostics.reportError(
                     "Unexpected token: ${token.type.rawDiagnosticsRepresentation}",
@@ -520,12 +531,12 @@ class Parser(
         }
     }
 
-    private fun parseVariable(): Expr {
+    private fun parseVariable(): VariableDecl {
         val nameToken = peek()
         expect(Token.Type.IDENTIFIER)
         val name = nameToken.content
         expect(Token.Type.S_COLON)
-        return Variable(name, parseType())
+        return VariableDecl(name, parseType())
     }
 
     private fun parseTypeAlias(): TypeAlias {
@@ -536,6 +547,40 @@ class Parser(
         expect(Token.Type.IDENTIFIER)
         skipWhitespace()
         return TypeAlias(original, aliasToken.content)
+    }
+
+    private fun parseRecordDecl(modifiers: List<Modifier>): RecordDecl {
+        val badModifiers = modifiers.collectInvalidModifiers(ModifierLocaleContext.RECORD)
+        if (badModifiers.isNotEmpty()) {
+            badModifiers.forEach {
+                diagnostics.reportError(
+                    "The modifier '${it.name}' is not allowed on a record",
+                    span = SourceSpan.single(here()),
+                    code = "P006"
+                )
+            }
+        }
+        expect(Token.Type.K_RECORD)
+        val name = parseType()
+        expect(Token.Type.S_OPEN_BRACE)
+        skipWhitespace()
+        val functionMembers = mutableListOf<FunctionDecl>()
+        val variableMembers = mutableListOf<VariableDecl>()
+        while (peek(0).type != Token.Type.S_CLOSE_BRACE && peek(1).type != Token.Type.S_EOF) {
+            if (peek(0).type == Token.Type.K_FX) {
+                functionMembers.add(parseFunctionDecl())
+            } else {
+                variableMembers.add(parseVariable())
+            }
+        }
+        expect(Token.Type.S_CLOSE_BRACE)
+        if (functionMembers.isEmpty() && variableMembers.isEmpty()) {
+            diagnostics.reportInfo(
+                "Empty record are wasteful, consider using a type alias.",
+                span = SourceSpan.single(here())
+            )
+        }
+        return RecordDecl(name, variableMembers, functionMembers, modifiers)
     }
 
     private fun parseType(): Type {
@@ -553,6 +598,7 @@ class Parser(
             Token.Type.K__LONG,
             Token.Type.K__BOOL,
             Token.Type.K__UNIT -> Type.Builtin(token.content)
+
             Token.Type.IDENTIFIER -> {
                 val name = token.content
                 if (at(Token.Type.S_OPEN_BRACKET)) {
@@ -561,7 +607,10 @@ class Parser(
                     while (!at(Token.Type.S_CLOSE_BRACKET)) {
                         args.add(parseType())
                         if (!at(Token.Type.S_CLOSE_BRACKET)) {
-                            expect(Token.Type.S_COMMA, "Generic type arguments must be separated by commas, e.g., List[Int, String]")
+                            expect(
+                                Token.Type.S_COMMA,
+                                "Generic type arguments must be separated by commas, e.g., List[Int, String]"
+                            )
                         }
                     }
                     expect(Token.Type.S_CLOSE_BRACKET, "Generic types must end with ']', e.g., Type[Arg]")
@@ -570,6 +619,7 @@ class Parser(
                     Type.Named(name)
                 }
             }
+
             else -> {
                 diagnostics.reportError(
                     "Expected type, but found ${token.type.rawDiagnosticsRepresentation}",
@@ -596,7 +646,10 @@ class Parser(
         }
         val condition = parseExpression()
         skipWhitespace()
-        expect(Token.Type.S_OPEN_BRACE, "If statements require a body in braces after the condition, e.g., if cond { ... }")
+        expect(
+            Token.Type.S_OPEN_BRACE,
+            "If statements require a body in braces after the condition, e.g., if cond { ... }"
+        )
         val thenBranch = parseBlock()
         expect(Token.Type.S_CLOSE_BRACE, "If bodies must end with '}', e.g., if cond { ... }")
         var elseBranch: List<Stmt>? = null
@@ -627,7 +680,10 @@ class Parser(
         }
         val condition = parseExpression()
         skipWhitespace()
-        expect(Token.Type.S_OPEN_BRACE, "While loops require a body in braces after the condition, e.g., while cond { ... }")
+        expect(
+            Token.Type.S_OPEN_BRACE,
+            "While loops require a body in braces after the condition, e.g., while cond { ... }"
+        )
         val body = parseBlock()
         expect(Token.Type.S_CLOSE_BRACE, "While bodies must end with '}', e.g., while cond { ... }")
         return WhileStmt(condition, body)
@@ -666,21 +722,26 @@ class Parser(
         } else {
             emptyList()
         }
-        expect(Token.Type.S_COLON, "Function declarations require a return type after the name, e.g., fx func: Int { ... }")
+        expect(
+            Token.Type.S_COLON,
+            "Function declarations require a return type after the name, e.g., fx func: Int { ... }"
+        )
         val returnType = parseType()
-        expect(Token.Type.S_OPEN_PARENTHESIS, "Function parameters must be in parentheses after the return type, e.g., (param: Type)")
-        val parameters = mutableListOf<VarDecl>()
+        expect(
+            Token.Type.S_OPEN_PARENTHESIS,
+            "Function parameters must be in parentheses after the return type, e.g., (param: Type)"
+        )
+        val parameters = mutableListOf<VariableDecl>()
         while (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
             val paramName = peek()
             expect(Token.Type.IDENTIFIER)
             expect(Token.Type.S_COLON, "Parameters require a type annotation, e.g., param: Int")
             val paramType = parseType()
             parameters.add(
-                VarDecl(
+                VariableDecl(
                     paramName.content,
                     paramType,
                     null,
-                    false
                 )
             ) // dummy init
             if (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
@@ -692,7 +753,7 @@ class Parser(
         expect(Token.Type.S_OPEN_BRACE, "Function bodies must start with '{', e.g., { statements }")
         val body = parseBlock()
         expect(Token.Type.S_CLOSE_BRACE, "Function bodies must end with '}', e.g., { statements }")
-        return FunctionDecl(name, generics, returnType, parameters, body)
+        return FunctionDecl(name, emptyList(), generics, returnType, parameters, body)
     }
 
     private fun parseDeferStmt(): DeferStmt {

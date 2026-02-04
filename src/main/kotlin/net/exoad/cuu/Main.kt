@@ -21,7 +21,8 @@ private fun bold(
     return if (useColors) "${TUIColors.BOLD}$text${TUIColors.RESET}" else text
 }
 
-fun main() {
+fun main(args: Array<String>) {
+    val dumpLexerTokens = args.contains("--lexerDump")
     val inputFile = "input.cuu"
     val outputFile = "output.c"
     try {
@@ -37,6 +38,18 @@ fun main() {
         val sourceContent = File(inputFile).readText()
         val diagnostics = DiagnosticCollector()
         val tokens = Lexer(sourceContent, diagnostics).tokenize()
+        if (dumpLexerTokens) {
+            File("lexer_dumped.txt").writeText(buildString {
+                tokens.forEach {
+                    if (it.type != Token.Type.S_NEWLINE) {
+                        append(it.type.name)
+                        append(" ")
+                    } else {
+                        appendLine()
+                    }
+                }
+            })
+        }
         LintAnalyzer(tokens, diagnostics).analyze()
         if (diagnostics.hasErrors) {
             DiagnosticDisplay.displayAndExit(

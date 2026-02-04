@@ -1,6 +1,6 @@
 package net.exoad.cuu
 
-class ASTDebugPrint : NodeVisitor<String> {
+class ASTDebugPrint : NodeVisitor<String>() {
     private var currentIndent = ""
 
     override fun visitModule(module: Module): String {
@@ -9,7 +9,7 @@ class ASTDebugPrint : NodeVisitor<String> {
         val statements =
             module.statements.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
-        return "${currentIndent}Module {\n${currentIndent}  Name: ${module.canonName}\n$statements\n${currentIndent}}"
+        return "${currentIndent}Module '${module.canonName}' {\n$statements\n${currentIndent}}"
     }
 
     override fun visitExprStmt(exprStmt: ExprStmt): String {
@@ -20,19 +20,17 @@ class ASTDebugPrint : NodeVisitor<String> {
         return "${currentIndent}ExprStmt {\n$exprStr\n${currentIndent}}"
     }
 
-    override fun visitVarDecl(varDecl: VarDecl): String {
+    override fun visitVarDecl(variableDecl: VariableDecl): String {
         val oldIndent = currentIndent
         currentIndent += "  "
-        val typeStr = varDecl.type.accept(this)
-        val initStr = varDecl.init?.accept(this) ?: "null"
+        val typeStr = variableDecl.type.accept(this)
+        val initStr = variableDecl.init?.accept(this) ?: "null"
         currentIndent = oldIndent
         return "${currentIndent}VarDecl {\n${currentIndent}  Name = ${
-            varDecl
-                .name
+            variableDecl.name
         }\n${currentIndent}  Type = $typeStr\n${currentIndent}  Init = " +
-                "$initStr\n${currentIndent}  Mutable = ${
-                    varDecl
-                        .isMutable
+                "$initStr\n${currentIndent}  Modifiers = ${
+                    if (variableDecl.modifiers.isNotEmpty()) "[${variableDecl.modifiers.joinToString { "${it.name} " }}]" else "[]"
                 }\n${currentIndent}}"
     }
 
@@ -61,21 +59,13 @@ class ASTDebugPrint : NodeVisitor<String> {
         }\", Type = ${literal.type})"
     }
 
-    override fun visitVariable(variable: Variable): String {
-        return "Variable(Name = ${variable.name}, Type = ${
-            variable.type.accept(
-                this
-            )
-        })"
-    }
-
     override fun visitBinaryOp(binaryOp: BinaryOp): String {
         val oldIndent = currentIndent
         currentIndent += "  "
         val leftStr = binaryOp.left.accept(this)
         val rightStr = binaryOp.right.accept(this)
         currentIndent = oldIndent
-        return "${currentIndent}BinaryOp(Op = ${binaryOp.op}) " +
+        return "${currentIndent}BinaryOp(Op = '${binaryOp.op}') " +
                 "{\n${currentIndent}  Left = $leftStr\n${currentIndent}  " +
                 "Right = $rightStr\n${currentIndent}}"
     }
@@ -112,7 +102,7 @@ class ASTDebugPrint : NodeVisitor<String> {
         currentIndent = oldIndent
         return "${currentIndent}IfStmt {\n${currentIndent}  Condition = " +
                 "$conditionStr\n${currentIndent}  " +
-                "Then = \n$thenStatements$elseStr\n${currentIndent}}"
+                "Then = $thenStatements$elseStr\n${currentIndent}}"
     }
 
     override fun visitWhileStmt(whileStmt: WhileStmt): String {
@@ -123,7 +113,7 @@ class ASTDebugPrint : NodeVisitor<String> {
         currentIndent = oldIndent
         return "${currentIndent}WhileStmt {\n${currentIndent}  Condition = " +
                 "$conditionStr\n${currentIndent}  " +
-                "Body = \n$bodyStr\n${currentIndent}}"
+                "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitDeferStmt(deferStmt: DeferStmt): String {
@@ -132,7 +122,7 @@ class ASTDebugPrint : NodeVisitor<String> {
         val bodyStr = deferStmt.body.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}DeferStmt {\n${currentIndent}  " +
-                "Body = \n$bodyStr\n${currentIndent}}"
+                "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitCall(call: Call): String {
@@ -163,7 +153,7 @@ class ASTDebugPrint : NodeVisitor<String> {
                 "$genericsStr\n${currentIndent}  ReturnType = " +
                 "$returnTypeStr\n${currentIndent}  Params = " +
                 "$paramsStr\n${currentIndent}  " +
-                "Body = \n$bodyStr\n${currentIndent}}"
+                "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitCast(cast: Cast): String {
@@ -183,7 +173,7 @@ class ASTDebugPrint : NodeVisitor<String> {
         val exprStr = unaryOp.expr.accept(this)
         val pos = if (unaryOp.isPrefix) "prefix" else "postfix"
         currentIndent = oldIndent
-        return "${currentIndent}UnaryOp(Op = ${unaryOp.op}, Mode = $pos) " +
+        return "${currentIndent}UnaryOp(Op = '${unaryOp.op}', Mode = $pos) " +
                 "{\n${currentIndent}  Expr = $exprStr\n${currentIndent}}"
     }
 
@@ -193,5 +183,15 @@ class ASTDebugPrint : NodeVisitor<String> {
 
     override fun visitContinueStmt(continueStmt: ContinueStmt): String {
         return "${currentIndent}ContinueStmt"
+    }
+
+    override fun visitRecordDecl(recordDecl: RecordDecl): String {
+        val oldIndent = currentIndent
+        currentIndent += "  "
+        val nameStr = recordDecl.identifier.accept(this)
+        val functionMembers = recordDecl.functionMembers.map { it.accept(this) }.joinToString { ",\n" }
+        val varMembers = recordDecl.variableMembers.map { it.accept(this) }.joinToString { ",\n" }
+        currentIndent = oldIndent
+        return "${currentIndent}Record {\n${currentIndent}${currentIndent}Type = $nameStr,\n${currentIndent}${currentIndent}FxMembers = [$functionMembers],\n${currentIndent}${currentIndent}VarMembers = [$varMembers]\n${currentIndent}}"
     }
 }

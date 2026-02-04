@@ -71,6 +71,7 @@ data class Diagnostic(
         fun hint(message: String, span: SourceSpan): Diagnostic {
             return Diagnostic(DiagnosticLevel.HINT, message, span)
         }
+
     }
 }
 

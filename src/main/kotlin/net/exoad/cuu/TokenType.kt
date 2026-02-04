@@ -54,6 +54,7 @@ sealed class Token(
         K_WHILE("'while'"),
         K_DEFER("'defer'"),
         K_BREAK("'break'"),
+        K_RECORD("'record'"),
         K_CONTINUE("'continue'"),
 
         // builtin stuffs

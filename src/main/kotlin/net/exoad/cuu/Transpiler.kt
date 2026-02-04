@@ -1,6 +1,6 @@
 package net.exoad.cuu
 
-class Transpiler : NodeVisitor<Unit> {
+class Transpiler : NodeVisitor<Unit>() {
     val sb = StringBuilder()
     private val includes = mutableSetOf<String>()
 
@@ -9,27 +9,27 @@ class Transpiler : NodeVisitor<Unit> {
             comment("Generated at: ${java.time.Instant.now()}")
             ppHeaderGuard("__COMPILER_BUNDLE_K_SHARED_H__")
             ppInclude("stdint.h")
-            ppDefine(NameMangler["true_k"], "1")
-            ppDefine(NameMangler["false_k"], "0")
-            ppDefine(NameMangler["persistent_k"], "static")
-            typedef(NameMangler["int_t"], "int32_t")
-            typedef(NameMangler["float_t"], "float")
-            typedef(NameMangler["double_t"], "double")
-            typedef(NameMangler["char_t"], "int8_t")
-            typedef(NameMangler["short_t"], "int16_t")
-            typedef(NameMangler["long_t"], "int64_t")
-            typedef(NameMangler["bool_t"], "uint8_t")
-            typedef(NameMangler["ubyte_t"], "uint8_t")
-            typedef(NameMangler["uint_t"], "uint32_t")
-            typedef(NameMangler["ulong_t"], "uint64_t")
-            typedef(NameMangler["unit_t"], "void")
+            ppDefine(Mangler["true_k"], "1")
+            ppDefine(Mangler["false_k"], "0")
+            ppDefine(Mangler["persistent_k"], "static")
+            typedef(Mangler["int_t"], "int32_t")
+            typedef(Mangler["float_t"], "float")
+            typedef(Mangler["double_t"], "double")
+            typedef(Mangler["char_t"], "int8_t")
+            typedef(Mangler["short_t"], "int16_t")
+            typedef(Mangler["long_t"], "int64_t")
+            typedef(Mangler["bool_t"], "uint8_t")
+            typedef(Mangler["ubyte_t"], "uint8_t")
+            typedef(Mangler["uint_t"], "uint32_t")
+            typedef(Mangler["ulong_t"], "uint64_t")
+            typedef(Mangler["unit_t"], "void")
             appendRaw("\n")
             ppIfDef("__GNUC__")
-            ppDefine(NameMangler["immutable_k"], "const")
-            ppDefine(NameMangler["mutable_k"], CLang.ppAttribute("unused"))
+            ppDefine(Mangler["immutable_k"], "const")
+            ppDefine(Mangler["mutable_k"], CLang.ppAttribute("unused"))
             ppElse()
-            ppDefine(NameMangler["immutable_k"], "const")
-            ppDefine(NameMangler["mutable_k"], "")
+            ppDefine(Mangler["immutable_k"], "const")
+            ppDefine(Mangler["mutable_k"], "")
             ppEndIf()
             ppEndIf()
         }
@@ -46,6 +46,7 @@ class Transpiler : NodeVisitor<Unit> {
             is BinaryOp -> isCompileTimeConstant(expr.left) && isCompileTimeConstant(
                 expr.right
             )
+
             else -> false
         }
     }
@@ -54,13 +55,14 @@ class Transpiler : NodeVisitor<Unit> {
         when (node) {
             is Module -> node.statements.forEach { collectIncludes(it) }
             is ExprStmt -> collectIncludes(node.expr)
-            is VarDecl -> node.init?.let { collectIncludes(it) }
+            is VariableDecl -> node.init?.let { collectIncludes(it) }
             is TypeAlias -> Unit
             is IfStmt -> {
                 collectIncludes(node.condition)
                 node.thenBranch.forEach { collectIncludes(it) }
                 node.elseBranch?.forEach { collectIncludes(it) }
             }
+
             is FunctionDecl -> node.body.forEach { collectIncludes(it) }
             is Call -> {
                 val callee = node.callee
@@ -75,11 +77,12 @@ class Transpiler : NodeVisitor<Unit> {
                 node.typeArgs.forEach { collectIncludes(it) }
                 node.args.forEach { collectIncludes(it) }
             }
+
             is BinaryOp -> {
                 collectIncludes(node.left)
                 collectIncludes(node.right)
             }
-            is Variable -> Unit
+
             is Identifier -> Unit
             is Literal<*> -> Unit
             else -> Unit
@@ -99,15 +102,16 @@ class Transpiler : NodeVisitor<Unit> {
         sb.append("continue;")
     }
 
-    override fun visitVarDecl(varDecl: VarDecl) {
-        if (varDecl.isMutable) {
-            sb.append("${NameMangler["mutable_k"]} ")
-        } else {
-            sb.append("${NameMangler["immutable_k"]} ")
-        }
-        varDecl.type.accept(this)
-        sb.append(" ${varDecl.name}=")
-        varDecl.init!!.accept(this)
+    override fun visitVarDecl(variableDecl: VariableDecl) {
+        TODO("fix up modifier implementation")
+//        if (varDecl.isMutable) {
+//            sb.append("${Mangler["mutable_k"]} ")
+//        } else {
+//            sb.append("${Mangler["immutable_k"]} ")
+//        }
+        variableDecl.type.accept(this)
+        sb.append(" ${variableDecl.name}=")
+        variableDecl.init!!.accept(this)
         sb.append(";")
     }
 
@@ -133,18 +137,17 @@ class Transpiler : NodeVisitor<Unit> {
                             .replace("\u000C", "\\f")
                     }\""
                 )
+
                 is Literal.LBool -> append(
-                    if (literal.value) NameMangler["true_k"]
-                    else NameMangler["false_k"]
+                    if (literal.value) Mangler["true_k"]
+                    else Mangler["false_k"]
                 )
+
                 is Literal.LFloat -> append(literal.value)
             }
         }
     }
 
-    override fun visitVariable(variable: Variable) {
-        sb.append(variable.name)
-    }
 
     override fun visitBinaryOp(binaryOp: BinaryOp) {
         sb.append("(")
@@ -163,20 +166,21 @@ class Transpiler : NodeVisitor<Unit> {
             when (type) {
                 is Type.Builtin -> append(
                     when (type.name) {
-                        "_Int" -> NameMangler["int_t"]
-                        "_Float" -> NameMangler["float_t"]
-                        "_Double" -> NameMangler["double_t"]
-                        "_Byte" -> NameMangler["char_t"]
-                        "_Short" -> NameMangler["short_t"]
-                        "_Long" -> NameMangler["long_t"]
-                        "_Bool" -> NameMangler["bool_t"]
-                        "_Unit" -> NameMangler["unit_t"]
-                        "_UInt" -> NameMangler["uint_t"]
-                        "_UByte" -> NameMangler["ubyte_t"]
-                        "_ULong" -> NameMangler["ulong_t"]
+                        "_Int" -> Mangler["int_t"]
+                        "_Float" -> Mangler["float_t"]
+                        "_Double" -> Mangler["double_t"]
+                        "_Byte" -> Mangler["char_t"]
+                        "_Short" -> Mangler["short_t"]
+                        "_Long" -> Mangler["long_t"]
+                        "_Bool" -> Mangler["bool_t"]
+                        "_Unit" -> Mangler["unit_t"]
+                        "_UInt" -> Mangler["uint_t"]
+                        "_UByte" -> Mangler["ubyte_t"]
+                        "_ULong" -> Mangler["ulong_t"]
                         else -> type.name
                     }
                 )
+
                 is Type.Generic -> error("No Impl")
                 is Type.Named -> append(type.name)
             }
@@ -209,15 +213,15 @@ class Transpiler : NodeVisitor<Unit> {
     }
 
     override fun visitCall(call: Call) {
-        throw NotImplementedError("Not implemented yet")
+        // ignored
     }
 
     override fun visitFunctionDecl(functionDecl: FunctionDecl) {
-        throw NotImplementedError("Not implemented yet")
+        // ignored
     }
 
     override fun visitDeferStmt(deferStmt: DeferStmt) {
-        // Handled in visitFunctionDecl to control ordering; nothing emitted here
+        // ignored
     }
 
     override fun visitCast(cast: Cast) {

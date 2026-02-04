@@ -1,6 +1,6 @@
 package net.exoad.cuu
 
-object NameMangler {
+object Mangler {
     const val MANGLING_ENABLED: Boolean = false
 
     private val prefixes = mutableMapOf<String, String>()

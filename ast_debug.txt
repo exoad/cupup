@@ -1,5 +1,4 @@
-Module {
-  Name: input_test
+Module 'input_test' {
   TypeAlias {
     Original = BuiltinType(Name = _Int)
     Alias = Int32
@@ -33,24 +32,28 @@ Module {
     Alias = Unit
   }
   TypeAlias {
-    Original = BuiltinType(Name = _UInt)
+    Original = NamedType(Name = _UInt)
     Alias = UInt32
   }
   TypeAlias {
-    Original = BuiltinType(Name = _ULong)
+    Original = NamedType(Name = _ULong)
     Alias = UInt64
   }
   TypeAlias {
-    Original = BuiltinType(Name = _UByte)
+    Original = NamedType(Name = _UByte)
     Alias = UInt8
+  }
+  Record {
+    Type = NamedType(Name = RecordA),
+    FxMembers = [],
+    VarMembers = []
   }
   FunctionDecl {
     Name = demoDefer
     Generics = 
     ReturnType = NamedType(Name = Unit)
     Params = 
-    Body = 
-    ExprStmt {
+    Body =     ExprStmt {
       Call {
         Callee = Identifier(Name = @stdio_printf)
         TypeArgs = 
@@ -58,8 +61,7 @@ Module {
       }
     }
     DeferStmt {
-      Body = 
-      ExprStmt {
+      Body =       ExprStmt {
         Call {
           Callee = Identifier(Name = @stdio_printf)
           TypeArgs = 
@@ -68,8 +70,7 @@ Module {
       }
     }
     DeferStmt {
-      Body = 
-      ExprStmt {
+      Body =       ExprStmt {
         Call {
           Callee = Identifier(Name = @stdio_printf)
           TypeArgs = 
@@ -89,15 +90,14 @@ Module {
     Name = x
     Type = NamedType(Name = Int32)
     Init = Literal(Value = "10", Type = L_INTEGER)
-    Mutable = true
+    Modifiers = []
   }
   WhileStmt {
-    Condition =     BinaryOp(Op = >) {
+    Condition =     BinaryOp(Op = '>') {
       Left = Identifier(Name = x)
       Right = Literal(Value = "0", Type = L_INTEGER)
     }
-    Body = 
-    ExprStmt {
+    Body =     ExprStmt {
       Call {
         Callee = Identifier(Name = @stdio_printf)
         TypeArgs = 
@@ -105,17 +105,16 @@ Module {
       }
     }
     ExprStmt {
-      UnaryOp(Op = --, Mode = postfix) {
+      UnaryOp(Op = '--', Mode = postfix) {
         Expr = Identifier(Name = x)
       }
     }
     IfStmt {
-      Condition =       BinaryOp(Op = ==) {
+      Condition =       BinaryOp(Op = '==') {
         Left = Identifier(Name = x)
         Right = Literal(Value = "5", Type = L_INTEGER)
       }
-      Then = 
-      ExprStmt {
+      Then =       ExprStmt {
         Call {
           Callee = Identifier(Name = @stdio_printf)
           TypeArgs = 

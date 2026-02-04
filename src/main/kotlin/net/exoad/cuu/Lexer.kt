@@ -45,6 +45,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '=' -> {
                             tokens.add(
                                 Token.Raw(
@@ -59,6 +60,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -92,6 +94,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '=' -> {
                             tokens.add(
                                 Token.Raw(
@@ -106,6 +109,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -357,6 +361,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '<' -> {
                             if (buffer.peek(2) == '=') {
                                 tokens.add(
@@ -386,6 +391,7 @@ class Lexer(
                                 buffer.advance(); buffer.advance()
                             }
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -419,6 +425,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '>' -> {
                             if (buffer.peek(2) == '=') {
                                 tokens.add(
@@ -448,6 +455,7 @@ class Lexer(
                                 buffer.advance(); buffer.advance()
                             }
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -481,6 +489,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '=' -> {
                             tokens.add(
                                 Token.Raw(
@@ -495,6 +504,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -528,6 +538,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         '=' -> {
                             tokens.add(
                                 Token.Raw(
@@ -542,6 +553,7 @@ class Lexer(
                             )
                             buffer.advance(); buffer.advance()
                         }
+
                         else -> {
                             tokens.add(
                                 Token.Raw(
@@ -794,32 +806,12 @@ class Lexer(
             buffer.advance()
         }
         val str = input.substring(startPos, buffer.position)
-        val keywords = mapOf(
-            "_Int" to Token.Type.K__INT,
-            "_Float" to Token.Type.K__FLOAT,
-            "_Double" to Token.Type.K__DOUBLE,
-            "_Byte" to Token.Type.K__BYTE,
-            "_Short" to Token.Type.K__SHORT,
-            "_Long" to Token.Type.K__LONG,
-            "_Bool" to Token.Type.K__BOOL,
-            "_Unit" to Token.Type.K__UNIT,
-            "_UByte" to Token.Type.K__UBYTE,
-            "_UInt" to Token.Type.K__UINT,
-            "_ULong" to Token.Type.K__ULONG,
-            "alias" to Token.Type.K_ALIAS,
-            "as" to Token.Type.K_AS,
-            "mut" to Token.Type.K_MUT,
-            "if" to Token.Type.K_IF,
-            "else" to Token.Type.K_ELSE,
-            "true" to Token.Type.K_TRUE,
-            "false" to Token.Type.K_FALSE,
-            "fx" to Token.Type.K_FX,
-            "defer" to Token.Type.K_DEFER,
-            "break" to Token.Type.K_BREAK,
-            "continue" to Token.Type.K_CONTINUE,
-            "while" to Token.Type.K_WHILE,
-            "mod" to Token.Type.K_MOD,
-        )
+        val keywords = Token.Type.entries.filter {
+            it.name.startsWith("K_")
+        }.associateBy {
+            val x = it.name.substring(2).replace("'", "")
+            if (x.startsWith("_")) "_${x[1].uppercase()}${x.substring(2).lowercase()}" else x.lowercase()
+        }
         return Token.Raw(
             keywords[str] ?: Token.Type.IDENTIFIER,
             str,

@@ -1,29 +1,81 @@
 package net.exoad.cuu
 
-interface NodeVisitor<R> {
-    fun visitModule(module: Module): R
-    fun visitExprStmt(exprStmt: ExprStmt): R
-    fun visitVarDecl(varDecl: VarDecl): R
-    fun visitTypeAlias(typeAlias: TypeAlias): R
-    fun <T> visitLiteral(literal: Literal<T>): R
-    fun visitVariable(variable: Variable): R
-    fun visitBinaryOp(binaryOp: BinaryOp): R
-    fun visitIdentifier(identifier: Identifier): R
-    fun visitType(type: Type): R
-    fun visitIfStmt(ifStmt: IfStmt): R
-    fun visitCall(call: Call): R
-    fun visitFunctionDecl(functionDecl: FunctionDecl): R
-    fun visitCast(cast: Cast): R
-    fun visitUnaryOp(unaryOp: UnaryOp): R
-    fun visitWhileStmt(whileStmt: WhileStmt): R
-    fun visitDeferStmt(deferStmt: DeferStmt): R
-    fun visitBreakStmt(breakStmt: BreakStmt): R
-    fun visitContinueStmt(continueStmt: ContinueStmt): R
+abstract class NodeVisitor<R> {
+    abstract fun visitModule(module: Module): R
+    abstract fun visitExprStmt(exprStmt: ExprStmt): R
+    abstract fun visitVarDecl(variableDecl: VariableDecl): R
+    abstract fun visitTypeAlias(typeAlias: TypeAlias): R
+    abstract fun <T> visitLiteral(literal: Literal<T>): R
+
+    open fun visitRecordDecl(recordDecl: RecordDecl): R = TODO()
+
+    abstract fun visitBinaryOp(binaryOp: BinaryOp): R
+    abstract fun visitIdentifier(identifier: Identifier): R
+    abstract fun visitType(type: Type): R
+    abstract fun visitIfStmt(ifStmt: IfStmt): R
+    abstract fun visitCall(call: Call): R
+    abstract fun visitFunctionDecl(functionDecl: FunctionDecl): R
+    abstract fun visitCast(cast: Cast): R
+    abstract fun visitUnaryOp(unaryOp: UnaryOp): R
+    abstract fun visitWhileStmt(whileStmt: WhileStmt): R
+    abstract fun visitDeferStmt(deferStmt: DeferStmt): R
+    abstract fun visitBreakStmt(breakStmt: BreakStmt): R
+    abstract fun visitContinueStmt(continueStmt: ContinueStmt): R
 }
 
-sealed class Node {
+enum class ModifierLocaleContext {
+    FUNCTION_LOCAL_FUNCTION,
+    FUNCTION_LOCAL_VARIABLE,
+    FUNCTION_PARAMETER,
+    RECORD,
+    FUNCTION,
+    VARIABLE,
+    RECORD_MEMBER_VARIABLE,
+    RECORD_MEMBER_FUNCTION;
+}
+
+enum class Modifier(val allowedLocales: Set<ModifierLocaleContext>) {
+    PUBLIC(ModifierLocaleContext.entries.filter {
+        when (it) {
+            ModifierLocaleContext.FUNCTION_PARAMETER,
+            ModifierLocaleContext.FUNCTION_LOCAL_FUNCTION,
+            ModifierLocaleContext.FUNCTION_LOCAL_VARIABLE -> false
+
+            else -> true
+        }
+    }.toSet()),
+    MUTABLE(ModifierLocaleContext.entries.filter {
+        when (it) {
+            ModifierLocaleContext.FUNCTION_PARAMETER -> false
+
+            else -> true
+        }
+    }.toSet());
+
+}
+
+fun List<Modifier>.validateForLocale(locale: ModifierLocaleContext) {
+    forEach {
+        if (!it.allowedLocales.contains(locale)) {
+            error("Modifier ${it.name} is not allowed in context $locale")
+        }
+    }
+}
+
+fun List<Modifier>.collectInvalidModifiers(locale: ModifierLocaleContext): List<Modifier> {
+    val collect = mutableListOf<Modifier>()
+    forEach {
+        if (!it.allowedLocales.contains(locale)) {
+            collect.add(it)
+        }
+    }
+    return collect
+}
+
+abstract class Node {
     abstract fun <R> accept(visitor: NodeVisitor<R>): R
 }
+
 
 sealed class Stmt : Node()
 
@@ -44,11 +96,11 @@ data class ExprStmt(val expr: Expr) : Stmt() {
     }
 }
 
-data class VarDecl(
+data class VariableDecl(
     val name: String,
     val type: Type,
     val init: Expr? = null,
-    val isMutable: Boolean = false
+    val modifiers: List<Modifier> = emptyList()
 ) :
     Stmt() {
     override fun <R> accept(visitor: NodeVisitor<R>): R {
@@ -106,15 +158,30 @@ sealed class Literal<T>(val value: T, val type: Token.Type) : Expr() {
 }
 
 
-data class Variable(val name: String, val type: Type) : Expr() {
-    override fun <R> accept(visitor: NodeVisitor<R>): R {
-        return visitor.visitVariable(this)
-    }
-}
-
 data class BinaryOp(val op: String, val left: Expr, val right: Expr) : Expr() {
     override fun <R> accept(visitor: NodeVisitor<R>): R {
         return visitor.visitBinaryOp(this)
+    }
+}
+
+data class RecordDecl(
+    val identifier: Type,
+    val variableMembers: List<VariableDecl>,
+    val functionMembers: List<FunctionDecl>,
+    val modifiers: List<Modifier> = emptyList()
+) : Stmt() {
+    init {
+        modifiers.validateForLocale(ModifierLocaleContext.RECORD)
+        variableMembers.forEach {
+            modifiers.validateForLocale(ModifierLocaleContext.RECORD_MEMBER_VARIABLE)
+        }
+        functionMembers.forEach {
+            modifiers.validateForLocale(ModifierLocaleContext.RECORD_MEMBER_FUNCTION)
+        }
+    }
+
+    override fun <R> accept(visitor: NodeVisitor<R>): R {
+        return visitor.visitRecordDecl(this)
     }
 }
 
@@ -176,11 +243,19 @@ class ContinueStmt : Stmt() {
 
 data class FunctionDecl(
     val name: String,
+    val modifiers: List<Modifier> = emptyList(),
     val generics: List<String> = emptyList(),
     val returnType: Type,
-    val parameters: List<VarDecl>,
+    val parameters: List<VariableDecl>,
     val body: List<Stmt>
 ) : Stmt() {
+    init {
+        modifiers.validateForLocale(ModifierLocaleContext.FUNCTION)
+        parameters.forEach {
+            modifiers.validateForLocale(ModifierLocaleContext.FUNCTION_PARAMETER)
+        }
+    }
+
     override fun <R> accept(visitor: NodeVisitor<R>): R {
         return visitor.visitFunctionDecl(this)
     }
