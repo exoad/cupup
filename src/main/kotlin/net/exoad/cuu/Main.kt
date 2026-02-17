@@ -74,9 +74,9 @@ fun main(args: Array<String>) {
             println()
         }
         File("ast_debug.txt").writeText(ASTDebugPrint().visitModule(program))
-//        val transpiler = Transpiler()
-//        program.accept(transpiler)
-//        File(outputFile).writeText(transpiler.sb.toString())
+        val transpiler = Transpiler()
+        program.accept(transpiler)
+        File(outputFile).writeText(transpiler.sb.toString())
         println(
             "${
                 color(

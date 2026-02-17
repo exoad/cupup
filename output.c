@@ -1,20 +1,19 @@
-//AUTO GENERATED CODE - DO NOT MODIFY - BEGIN
-//Generated at: 2026-02-01T16:31:09.224526400Z
+//Generated at: 2026-02-05T15:09:54.206882359Z
 #ifndef __COMPILER_BUNDLE_K_SHARED_H__
 #define __COMPILER_BUNDLE_K_SHARED_H__
 #include<stdint.h>
-#define true_k 1
-#define false_k 0
-#define persistent_k static
-typedef int32_t int_t;typedef float float_t;typedef double double_t;typedef int8_t char_t;typedef int16_t short_t;typedef int64_t long_t;typedef uint8_t bool_t;typedef uint8_t ubyte_t;typedef uint32_t uint_t;typedef uint64_t ulong_t;typedef void unit_t;
+#define _DOgm0yqvoNry 1
+#define _CPEX6l4pSQ0y 0
+#define _E44dchsNUUic static
+typedef int32_t _dlOpzN2jTBs5;typedef float _iQqm4zNgsZqh;typedef double _ElHTqBV5dSx6;typedef int8_t _4iJENiF9LiKt;typedef int16_t _Wq7LJ5nXBUnv;typedef int64_t _FPtfX_Qlso3I;typedef uint8_t _l0bo7geOpKzB;typedef uint8_t _gXS61a83Sa3N;typedef uint32_t _zbuYHj8saSGF;typedef uint64_t _0sUJ9V413rTK;typedef void _fgL3Gj91VD8R;
 #ifdef __GNUC__
-#define immutable_k const
-#define mutable_k __attribute__((unused))
+#define _hSa68DHqSy22 const
+#define _kDjPEJiKR1oE __attribute__((unused))
 #else
-#define immutable_k const
-#define mutable_k 
+#define _hSa68DHqSy22 const
+#define _kDjPEJiKR1oE 
 #endif
 #endif
-#include<stdio.h>
-typedef int_t Int32;typedef long_t Int64;typedef short_t Int16;typedef char_t Int8;typedef float_t Float32;typedef double_t Float64;typedef bool_t Bool;typedef unit_t Unit;typedef uint_t UInt32;typedef ulong_t UInt64;typedef ubyte_t UInt8;Unit demoDefer(){printf("Starting function\n");printf("End of function\n");{printf("Second defer executed\n");printf("First defer executed\n");}}persistent_k mutable_k Int32 x=10;persistent_k unit_t __init_globals(void){while((x > 0)){printf("x = %d\n",x);(x)--;if((x == 5)){printf("Breaking the loop at x = %d\n",x);break;}}}int_t k_program_main(){__init_globals();return 0;}int_t main(){k_program_main();return 0;}
-// Auto Generated -- END
+
+//-- MODULE DECLARE : input_test
+typedef _dlOpzN2jTBs5 Int32;typedef _FPtfX_Qlso3I Int64;typedef _Wq7LJ5nXBUnv Int16;typedef _4iJENiF9LiKt Int8;typedef _iQqm4zNgsZqh Float32;typedef _ElHTqBV5dSx6 Float64;typedef _l0bo7geOpKzB Bool;typedef _fgL3Gj91VD8R Unit;typedef _zbuYHj8saSGF UInt32;typedef _0sUJ9V413rTK UInt64;typedef _gXS61a83Sa3N UInt8;

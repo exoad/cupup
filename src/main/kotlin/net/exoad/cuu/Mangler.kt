@@ -1,7 +1,7 @@
 package net.exoad.cuu
 
 object Mangler {
-    const val MANGLING_ENABLED: Boolean = false
+    const val MANGLING_ENABLED = true
 
     private val prefixes = mutableMapOf<String, String>()
     private val pool = generatePrefixes().shuffled()
@@ -9,7 +9,7 @@ object Mangler {
 
     private fun generateRandomPrefix(): String {
         val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9') + '_'
-        return "_" + (1..5).map {
+        return "_" + (1..12).map {
             chars.random()
         }.joinToString("")
     }

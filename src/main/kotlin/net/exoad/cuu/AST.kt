@@ -23,6 +23,13 @@ abstract class NodeVisitor<R> {
     abstract fun visitContinueStmt(continueStmt: ContinueStmt): R
 }
 
+enum class Membership {
+    RECORD,
+    FUNCTION_LOCAL,
+    MODULE,
+    FUNCTION_PARAMETER
+}
+
 enum class ModifierLocaleContext {
     FUNCTION_LOCAL_FUNCTION,
     FUNCTION_LOCAL_VARIABLE,
@@ -34,16 +41,18 @@ enum class ModifierLocaleContext {
     RECORD_MEMBER_FUNCTION;
 }
 
-enum class Modifier(val allowedLocales: Set<ModifierLocaleContext>) {
-    PUBLIC(ModifierLocaleContext.entries.filter {
-        when (it) {
-            ModifierLocaleContext.FUNCTION_PARAMETER,
-            ModifierLocaleContext.FUNCTION_LOCAL_FUNCTION,
-            ModifierLocaleContext.FUNCTION_LOCAL_VARIABLE -> false
-
-            else -> true
-        }
-    }.toSet()),
+enum class Modifier(
+    val allowedLocales: Set<ModifierLocaleContext>
+) {
+    //    PUBLIC(Token.Type ModifierLocaleContext.entries.filter {
+//        when (it) {
+//            ModifierLocaleContext.FUNCTION_PARAMETER,
+//            ModifierLocaleContext.FUNCTION_LOCAL_FUNCTION,
+//            ModifierLocaleContext.FUNCTION_LOCAL_VARIABLE -> false
+//
+//            else -> true
+//        }
+//    }.toSet()),
     MUTABLE(ModifierLocaleContext.entries.filter {
         when (it) {
             ModifierLocaleContext.FUNCTION_PARAMETER -> false
@@ -52,6 +61,11 @@ enum class Modifier(val allowedLocales: Set<ModifierLocaleContext>) {
         }
     }.toSet());
 
+    companion object {
+        val related = mapOf(
+            Token.Type.K_MUT to MUTABLE
+        )
+    }
 }
 
 fun List<Modifier>.validateForLocale(locale: ModifierLocaleContext) {
@@ -100,7 +114,8 @@ data class VariableDecl(
     val name: String,
     val type: Type,
     val init: Expr? = null,
-    val modifiers: List<Modifier> = emptyList()
+    val modifiers: List<Modifier> = emptyList(),
+    val membership: Membership
 ) :
     Stmt() {
     override fun <R> accept(visitor: NodeVisitor<R>): R {
@@ -168,7 +183,8 @@ data class RecordDecl(
     val identifier: Type,
     val variableMembers: List<VariableDecl>,
     val functionMembers: List<FunctionDecl>,
-    val modifiers: List<Modifier> = emptyList()
+    val modifiers: List<Modifier> = emptyList(),
+    val membership: Membership
 ) : Stmt() {
     init {
         modifiers.validateForLocale(ModifierLocaleContext.RECORD)
@@ -246,6 +262,7 @@ data class FunctionDecl(
     val modifiers: List<Modifier> = emptyList(),
     val generics: List<String> = emptyList(),
     val returnType: Type,
+    val membership: Membership,
     val parameters: List<VariableDecl>,
     val body: List<Stmt>
 ) : Stmt() {

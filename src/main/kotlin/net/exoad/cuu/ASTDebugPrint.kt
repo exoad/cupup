@@ -7,7 +7,7 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val oldIndent = currentIndent
         currentIndent += "  "
         val statements =
-            module.statements.joinToString("\n") { it.accept(this) }
+                module.statements.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}Module '${module.canonName}' {\n$statements\n${currentIndent}}"
     }
@@ -29,9 +29,9 @@ class ASTDebugPrint : NodeVisitor<String>() {
         return "${currentIndent}VarDecl {\n${currentIndent}  Name = ${
             variableDecl.name
         }\n${currentIndent}  Type = $typeStr\n${currentIndent}  Init = " +
-                "$initStr\n${currentIndent}  Modifiers = ${
-                    if (variableDecl.modifiers.isNotEmpty()) "[${variableDecl.modifiers.joinToString { "${it.name} " }}]" else "[]"
-                }\n${currentIndent}}"
+               "$initStr\n${currentIndent}  Modifiers = ${
+                   if (variableDecl.modifiers.isNotEmpty()) "[${variableDecl.modifiers.joinToString { "${it.name} " }}]" else "[]"
+               }\n${currentIndent}}"
     }
 
     override fun visitTypeAlias(typeAlias: TypeAlias): String {
@@ -40,10 +40,10 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val originalStr = typeAlias.original.accept(this)
         currentIndent = oldIndent
         return "${currentIndent}TypeAlias {\n${currentIndent}  Original = " +
-                "$originalStr\n${currentIndent}  Alias = ${
-                    typeAlias
-                        .aliasName
-                }\n${currentIndent}}"
+               "$originalStr\n${currentIndent}  Alias = ${
+                   typeAlias
+                       .aliasName
+               }\n${currentIndent}}"
     }
 
     override fun <T> visitLiteral(literal: Literal<T>): String {
@@ -66,8 +66,8 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val rightStr = binaryOp.right.accept(this)
         currentIndent = oldIndent
         return "${currentIndent}BinaryOp(Op = '${binaryOp.op}') " +
-                "{\n${currentIndent}  Left = $leftStr\n${currentIndent}  " +
-                "Right = $rightStr\n${currentIndent}}"
+               "{\n${currentIndent}  Left = $leftStr\n${currentIndent}  " +
+               "Right = $rightStr\n${currentIndent}}"
     }
 
     override fun visitIdentifier(identifier: Identifier): String {
@@ -79,12 +79,12 @@ class ASTDebugPrint : NodeVisitor<String>() {
             is Type.Builtin -> "BuiltinType(Name = ${type.name})"
             is Type.Named -> "NamedType(Name = ${type.name})"
             is Type.Generic -> "GenericType(Base = ${type.base.accept(this)}," +
-                    " " +
-                    "Args = ${
-                        type.args.joinToString(
-                            ", "
-                        ) { it.accept(this) }
-                    })"
+                               " " +
+                               "Args = ${
+                                   type.args.joinToString(
+                                       ", "
+                                   ) { it.accept(this) }
+                               })"
         }
     }
 
@@ -93,16 +93,16 @@ class ASTDebugPrint : NodeVisitor<String>() {
         currentIndent += "  "
         val conditionStr = ifStmt.condition.accept(this)
         val thenStatements =
-            ifStmt.thenBranch.joinToString("\n") { it.accept(this) }
+                ifStmt.thenBranch.joinToString("\n") { it.accept(this) }
         val elseStr = ifStmt.elseBranch?.let { elseStmts ->
             val elseStatements =
-                elseStmts.joinToString("\n") { it.accept(this) }
+                    elseStmts.joinToString("\n") { it.accept(this) }
             "\n${currentIndent}else {\n$elseStatements\n${currentIndent}}"
         } ?: ""
         currentIndent = oldIndent
         return "${currentIndent}IfStmt {\n${currentIndent}  Condition = " +
-                "$conditionStr\n${currentIndent}  " +
-                "Then = $thenStatements$elseStr\n${currentIndent}}"
+               "$conditionStr\n${currentIndent}  " +
+               "Then = $thenStatements$elseStr\n${currentIndent}}"
     }
 
     override fun visitWhileStmt(whileStmt: WhileStmt): String {
@@ -112,8 +112,8 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val bodyStr = whileStmt.body.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}WhileStmt {\n${currentIndent}  Condition = " +
-                "$conditionStr\n${currentIndent}  " +
-                "Body = $bodyStr\n${currentIndent}}"
+               "$conditionStr\n${currentIndent}  " +
+               "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitDeferStmt(deferStmt: DeferStmt): String {
@@ -122,7 +122,7 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val bodyStr = deferStmt.body.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}DeferStmt {\n${currentIndent}  " +
-                "Body = $bodyStr\n${currentIndent}}"
+               "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitCall(call: Call): String {
@@ -133,9 +133,9 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val argsStr = call.args.joinToString(", ") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}Call {\n${currentIndent}  Callee = " +
-                "$calleeStr\n${currentIndent}  TypeArgs = " +
-                "$typeArgsStr\n${currentIndent}  Args = " +
-                "$argsStr\n${currentIndent}}"
+               "$calleeStr\n${currentIndent}  TypeArgs = " +
+               "$typeArgsStr\n${currentIndent}  Args = " +
+               "$argsStr\n${currentIndent}}"
     }
 
     override fun visitFunctionDecl(functionDecl: FunctionDecl): String {
@@ -149,11 +149,11 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val bodyStr = functionDecl.body.joinToString("\n") { it.accept(this) }
         currentIndent = oldIndent
         return "${currentIndent}FunctionDecl {\n${currentIndent}  Name = " +
-                "${functionDecl.name}\n${currentIndent}  Generics = " +
-                "$genericsStr\n${currentIndent}  ReturnType = " +
-                "$returnTypeStr\n${currentIndent}  Params = " +
-                "$paramsStr\n${currentIndent}  " +
-                "Body = $bodyStr\n${currentIndent}}"
+               "${functionDecl.name}\n${currentIndent}  Generics = " +
+               "$genericsStr\n${currentIndent}  ReturnType = " +
+               "$returnTypeStr\n${currentIndent}  Params = " +
+               "$paramsStr\n${currentIndent}  " +
+               "Body = $bodyStr\n${currentIndent}}"
     }
 
     override fun visitCast(cast: Cast): String {
@@ -163,8 +163,8 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val typeStr = cast.target.accept(this)
         currentIndent = oldIndent
         return "${currentIndent}Cast {\n${currentIndent}  Expr = " +
-                "$exprStr\n${currentIndent}  Target = " +
-                "$typeStr\n${currentIndent}}"
+               "$exprStr\n${currentIndent}  Target = " +
+               "$typeStr\n${currentIndent}}"
     }
 
     override fun visitUnaryOp(unaryOp: UnaryOp): String {
@@ -174,7 +174,7 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val pos = if (unaryOp.isPrefix) "prefix" else "postfix"
         currentIndent = oldIndent
         return "${currentIndent}UnaryOp(Op = '${unaryOp.op}', Mode = $pos) " +
-                "{\n${currentIndent}  Expr = $exprStr\n${currentIndent}}"
+               "{\n${currentIndent}  Expr = $exprStr\n${currentIndent}}"
     }
 
     override fun visitBreakStmt(breakStmt: BreakStmt): String {
@@ -189,8 +189,10 @@ class ASTDebugPrint : NodeVisitor<String>() {
         val oldIndent = currentIndent
         currentIndent += "  "
         val nameStr = recordDecl.identifier.accept(this)
-        val functionMembers = recordDecl.functionMembers.map { it.accept(this) }.joinToString { ",\n" }
-        val varMembers = recordDecl.variableMembers.map { it.accept(this) }.joinToString { ",\n" }
+        val functionMembers = recordDecl.functionMembers.map { it.accept(this) }
+            .joinToString { ",\n" }
+        val varMembers = recordDecl.variableMembers.map { it.accept(this) }
+            .joinToString { ",\n" }
         currentIndent = oldIndent
         return "${currentIndent}Record {\n${currentIndent}${currentIndent}Type = $nameStr,\n${currentIndent}${currentIndent}FxMembers = [$functionMembers],\n${currentIndent}${currentIndent}VarMembers = [$varMembers]\n${currentIndent}}"
     }

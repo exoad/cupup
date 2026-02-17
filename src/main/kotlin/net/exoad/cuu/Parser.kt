@@ -10,6 +10,7 @@ class Parser(
 ) {
     private var position = 0
     private var lastTokenPosition: SourcePosition? = null
+    private var currentMembership = Membership.MODULE
 
     private val currentToken: Token
         get() = tokens[position]
@@ -90,6 +91,40 @@ class Parser(
         return peek().canonicalLocation
     }
 
+    private fun rememberMembership(
+        membership: Membership,
+        runnable: () -> Unit
+    ) {
+        val old = currentMembership
+        currentMembership = membership
+        runnable()
+        currentMembership = old
+    }
+
+    private fun parseModifiers(): List<Modifier> {
+        val modifiers = mutableSetOf<Modifier>()
+        while (Token.Type.allModifiers.contains(peek().type)) {
+            // might cache this here instead of relooping everything
+            val x = Modifier.related[peek().type]
+            if (x != null) {
+                if (modifiers.contains(x)) {
+                    diagnostics.reportError(
+                        "Duplicate modifier '${
+                            peek().type
+                        }'",
+                        span = SourceSpan.single(here())
+                    )
+                }
+                modifiers.add(x)
+                advance()
+            } else {
+                return modifiers.toList()
+            }
+        }
+        // never return here
+        return modifiers.toList()
+    }
+
     fun parseProgram(): Module {
         if (!at(Token.Type.K_MOD)) {
             diagnostics.reportError(
@@ -124,9 +159,13 @@ class Parser(
 
     private fun parseStatement(): Stmt {
         skipWhitespace()
+        var potentialModifiers = emptyList<Modifier>()
+        if (Modifier.related[peek().type] != null) {
+            potentialModifiers = parseModifiers()
+        }
         when {
-            at(Token.Type.K_RECORD) -> return parseRecordDecl(emptyList())
-            at(Token.Type.K_FX) -> return parseFunctionDecl()
+            at(Token.Type.K_RECORD) -> return parseRecordDecl(potentialModifiers)
+            at(Token.Type.K_FX) -> return parseFunctionDecl(potentialModifiers)
             at(Token.Type.K_ALIAS) -> return parseTypeAlias()
             at(Token.Type.K_IF) -> return parseIfStmt()
             at(Token.Type.K_WHILE) -> return parseWhileStmt()
@@ -141,7 +180,7 @@ class Parser(
                 return ContinueStmt()
             }
 
-            at(Token.Type.IDENTIFIER) || at(Token.Type.K_MUT) -> {
+            at(Token.Type.IDENTIFIER) -> {
                 val typePos = if (at(Token.Type.K_MUT)) 3 else 2
                 if (peek(typePos - 1).type == Token.Type.S_COLON && peek(
                         typePos
@@ -157,11 +196,10 @@ class Parser(
                         Token.Type.K__UNIT
                     ) && peek(typePos + 1).type == Token.Type.S_EQUAL
                 ) {
-                    return parseVarDecl()
+                    return parseVarDecl(potentialModifiers)
                 }
             }
         }
-
         val expr = parseExpression()
         skipWhitespace()
         if (diagnostics.hasErrors) {
@@ -174,16 +212,26 @@ class Parser(
         return ExprStmt(expr)
     }
 
-    private fun parseVarDecl(): VariableDecl {
-        val isMutable = expectOptional(Token.Type.K_MUT)
+    private fun parseVarDecl(potentialModifiers: List<Modifier>): VariableDecl {
         val nameToken = peek()
         advance()
-        expect(Token.Type.S_COLON, "Variable declarations require a type annotation, e.g., let x: Int = 5")
+        expect(
+            Token.Type.S_COLON,
+            "Variable declarations require a type annotation, e.g., let x: Int = 5"
+        )
         val type = parseType()
-        expect(Token.Type.S_EQUAL, "Variable declarations require an initializer, e.g., let x: Int = value")
+        expect(
+            Token.Type.S_EQUAL,
+            "Variable declarations require an initializer, e.g., let x: Int = value"
+        )
         val init = parseExpression()
         skipWhitespace()
-        return VariableDecl(nameToken.content, type, init)
+        return VariableDecl(
+            nameToken.content,
+            type,
+            init,
+            membership = currentMembership
+        )
     }
 
     private fun parseExpression(): Expr {
@@ -536,13 +584,16 @@ class Parser(
         expect(Token.Type.IDENTIFIER)
         val name = nameToken.content
         expect(Token.Type.S_COLON)
-        return VariableDecl(name, parseType())
+        return VariableDecl(name, parseType(), membership = currentMembership)
     }
 
     private fun parseTypeAlias(): TypeAlias {
         expect(Token.Type.K_ALIAS)
         val original = parseType()
-        expect(Token.Type.K_AS, "Type aliases use 'as' to specify the new name, e.g., alias OldType as NewType")
+        expect(
+            Token.Type.K_AS,
+            "Type aliases use 'as' to specify the new name, e.g., alias OldType as NewType"
+        )
         val aliasToken = peek()
         expect(Token.Type.IDENTIFIER)
         skipWhitespace()
@@ -550,7 +601,8 @@ class Parser(
     }
 
     private fun parseRecordDecl(modifiers: List<Modifier>): RecordDecl {
-        val badModifiers = modifiers.collectInvalidModifiers(ModifierLocaleContext.RECORD)
+        val badModifiers =
+                modifiers.collectInvalidModifiers(ModifierLocaleContext.RECORD)
         if (badModifiers.isNotEmpty()) {
             badModifiers.forEach {
                 diagnostics.reportError(
@@ -566,11 +618,13 @@ class Parser(
         skipWhitespace()
         val functionMembers = mutableListOf<FunctionDecl>()
         val variableMembers = mutableListOf<VariableDecl>()
-        while (peek(0).type != Token.Type.S_CLOSE_BRACE && peek(1).type != Token.Type.S_EOF) {
-            if (peek(0).type == Token.Type.K_FX) {
-                functionMembers.add(parseFunctionDecl())
-            } else {
-                variableMembers.add(parseVariable())
+        rememberMembership(Membership.RECORD) {
+            while (peek(0).type != Token.Type.S_CLOSE_BRACE && peek(1).type != Token.Type.S_EOF) {
+                if (peek(0).type == Token.Type.K_FX) {
+                    functionMembers.add(parseFunctionDecl(modifiers))
+                } else {
+                    variableMembers.add(parseVariable())
+                }
             }
         }
         expect(Token.Type.S_CLOSE_BRACE)
@@ -580,7 +634,13 @@ class Parser(
                 span = SourceSpan.single(here())
             )
         }
-        return RecordDecl(name, variableMembers, functionMembers, modifiers)
+        return RecordDecl(
+            name,
+            variableMembers,
+            functionMembers,
+            modifiers,
+            currentMembership
+        )
     }
 
     private fun parseType(): Type {
@@ -613,7 +673,10 @@ class Parser(
                             )
                         }
                     }
-                    expect(Token.Type.S_CLOSE_BRACKET, "Generic types must end with ']', e.g., Type[Arg]")
+                    expect(
+                        Token.Type.S_CLOSE_BRACKET,
+                        "Generic types must end with ']', e.g., Type[Arg]"
+                    )
                     Type.Generic(Type.Named(name), args)
                 } else {
                     Type.Named(name)
@@ -651,16 +714,25 @@ class Parser(
             "If statements require a body in braces after the condition, e.g., if cond { ... }"
         )
         val thenBranch = parseBlock()
-        expect(Token.Type.S_CLOSE_BRACE, "If bodies must end with '}', e.g., if cond { ... }")
+        expect(
+            Token.Type.S_CLOSE_BRACE,
+            "If bodies must end with '}', e.g., if cond { ... }"
+        )
         var elseBranch: List<Stmt>? = null
         if (expectOptional(Token.Type.K_ELSE)) {
             if (at(Token.Type.K_IF)) {
                 elseBranch = listOf(parseIfStmt())
             } else {
                 skipWhitespace()
-                expect(Token.Type.S_OPEN_BRACE, "Else bodies must be in braces, e.g., else { ... }")
+                expect(
+                    Token.Type.S_OPEN_BRACE,
+                    "Else bodies must be in braces, e.g., else { ... }"
+                )
                 elseBranch = parseBlock()
-                expect(Token.Type.S_CLOSE_BRACE, "Else bodies must end with '}', e.g., else { ... }")
+                expect(
+                    Token.Type.S_CLOSE_BRACE,
+                    "Else bodies must end with '}', e.g., else { ... }"
+                )
             }
         }
         return IfStmt(condition, thenBranch, elseBranch)
@@ -685,7 +757,10 @@ class Parser(
             "While loops require a body in braces after the condition, e.g., while cond { ... }"
         )
         val body = parseBlock()
-        expect(Token.Type.S_CLOSE_BRACE, "While bodies must end with '}', e.g., while cond { ... }")
+        expect(
+            Token.Type.S_CLOSE_BRACE,
+            "While bodies must end with '}', e.g., while cond { ... }"
+        )
         return WhileStmt(condition, body)
     }
 
@@ -701,7 +776,7 @@ class Parser(
         return statements
     }
 
-    private fun parseFunctionDecl(): FunctionDecl {
+    private fun parseFunctionDecl(potentialModifiers: List<Modifier>): FunctionDecl {
         expect(Token.Type.K_FX)
         val nameToken = peek()
         expect(Token.Type.IDENTIFIER)
@@ -732,36 +807,71 @@ class Parser(
             "Function parameters must be in parentheses after the return type, e.g., (param: Type)"
         )
         val parameters = mutableListOf<VariableDecl>()
-        while (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
-            val paramName = peek()
-            expect(Token.Type.IDENTIFIER)
-            expect(Token.Type.S_COLON, "Parameters require a type annotation, e.g., param: Int")
-            val paramType = parseType()
-            parameters.add(
-                VariableDecl(
-                    paramName.content,
-                    paramType,
-                    null,
+        rememberMembership(Membership.FUNCTION_PARAMETER) {
+            while (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
+                val paramName = peek()
+                expect(Token.Type.IDENTIFIER)
+                expect(
+                    Token.Type.S_COLON,
+                    "Parameters require a type annotation, e.g., param: Int"
                 )
-            ) // dummy init
-            if (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
-                expect(Token.Type.S_COMMA, "Multiple parameters must be separated by commas, e.g., (a: Int, b: String)")
+                val paramType = parseType()
+                parameters.add(
+                    VariableDecl(
+                        paramName.content,
+                        paramType,
+                        null,
+                        membership = currentMembership
+                    )
+                ) // dummy init
+                if (!at(Token.Type.S_CLOSE_PARENTHESIS)) {
+                    expect(
+                        Token.Type.S_COMMA,
+                        "Multiple parameters must be separated by commas, e.g., (a: Int, b: String)"
+                    )
+                }
             }
         }
-        expect(Token.Type.S_CLOSE_PARENTHESIS, "Parameter list must end with ')', e.g., (param: Type)")
+        expect(
+            Token.Type.S_CLOSE_PARENTHESIS,
+            "Parameter list must end with ')', e.g., (param: Type)"
+        )
         skipWhitespace()
-        expect(Token.Type.S_OPEN_BRACE, "Function bodies must start with '{', e.g., { statements }")
-        val body = parseBlock()
-        expect(Token.Type.S_CLOSE_BRACE, "Function bodies must end with '}', e.g., { statements }")
-        return FunctionDecl(name, emptyList(), generics, returnType, parameters, body)
+        lateinit var body: List<Stmt>
+        rememberMembership(Membership.FUNCTION_LOCAL) {
+            expect(
+                Token.Type.S_OPEN_BRACE,
+                "Function bodies must start with '{', e.g., { statements }"
+            )
+            body = parseBlock()
+            expect(
+                Token.Type.S_CLOSE_BRACE,
+                "Function bodies must end with '}', e.g., { statements }"
+            )
+        }
+        return FunctionDecl(
+            name,
+            emptyList(),
+            generics,
+            returnType,
+            currentMembership,
+            parameters,
+            body,
+        )
     }
 
     private fun parseDeferStmt(): DeferStmt {
         expect(Token.Type.K_DEFER)
         skipWhitespace()
-        expect(Token.Type.S_OPEN_BRACE, "Defer statements require a body in braces, e.g., defer { ... }")
+        expect(
+            Token.Type.S_OPEN_BRACE,
+            "Defer statements require a body in braces, e.g., defer { ... }"
+        )
         val body = parseBlock()
-        expect(Token.Type.S_CLOSE_BRACE, "Defer bodies must end with '}', e.g., defer { ... }")
+        expect(
+            Token.Type.S_CLOSE_BRACE,
+            "Defer bodies must end with '}', e.g., defer { ... }"
+        )
         return DeferStmt(body)
     }
 }

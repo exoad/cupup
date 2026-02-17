@@ -165,7 +165,7 @@ class Lexer(
                         }
                     } else if (buffer.peek(1) == '*') {
                         val commentStart =
-                            SourcePosition(buffer.line, buffer.column)
+                                SourcePosition(buffer.line, buffer.column)
                         buffer.advance(); buffer.advance()
                         var foundEnd = false
                         while (!buffer.isAtEnd) {
@@ -683,10 +683,10 @@ class Lexer(
         }
         while (!buffer.isAtEnd && (
                     buffer.current.isDigit() ||
-                            (isHex && buffer.current in 'a'..'f' || buffer.current in 'A'..'F') ||
-                            (isBinary && buffer.current in '0'..'1') ||
-                            (!isHex && !isBinary && buffer.current == '.' && !hasDot)
-                    )
+                    (isHex && buffer.current in 'a'..'f' || buffer.current in 'A'..'F') ||
+                    (isBinary && buffer.current in '0'..'1') ||
+                    (!isHex && !isBinary && buffer.current == '.' && !hasDot)
+                                  )
         ) {
             if (buffer.current == '.') {
                 hasDot = true
@@ -810,7 +810,30 @@ class Lexer(
             it.name.startsWith("K_")
         }.associateBy {
             val x = it.name.substring(2).replace("'", "")
-            if (x.startsWith("_")) "_${x[1].uppercase()}${x.substring(2).lowercase()}" else x.lowercase()
+            when (it) { // for hardcoding shit
+                Token.Type.K__ULONG,
+                Token.Type.K__UBYTE,
+                Token.Type.K__UINT ->
+                    "_${x[1].uppercase()}${x[2].uppercase()}${
+                        x.substring(3).lowercase()
+                    }"
+
+                Token.Type.K__FLOAT,
+                Token.Type.K__SHORT,
+                Token.Type.K__INT,
+                Token.Type.K__BYTE,
+                Token.Type.K__BOOL,
+                Token.Type.K__LONG,
+                Token.Type.K__DOUBLE,
+                Token.Type.K__UNIT ->
+                    "_${
+                        x[1].uppercase()
+                    }${
+                        x.substring(2).lowercase()
+                    }"
+
+                else -> x.lowercase()
+            }
         }
         return Token.Raw(
             keywords[str] ?: Token.Type.IDENTIFIER,

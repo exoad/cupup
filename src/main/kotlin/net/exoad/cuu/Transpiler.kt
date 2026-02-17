@@ -36,7 +36,14 @@ class Transpiler : NodeVisitor<Unit>() {
     }
 
     override fun visitModule(module: Module) {
-        throw NotImplementedError("Not implemented yet")
+//        throw NotImplementedError("Not implemented yet")
+        sb.appendLine(sharedHContent)
+        sb.append(CLang.build {
+            comment("-- MODULE DECLARE : ${module.canonName}")
+        })
+        module.statements.forEach {
+            it.accept(this)
+        }
     }
 
     private fun isCompileTimeConstant(expr: Expr): Boolean {
@@ -103,12 +110,13 @@ class Transpiler : NodeVisitor<Unit>() {
     }
 
     override fun visitVarDecl(variableDecl: VariableDecl) {
-        TODO("fix up modifier implementation")
-//        if (varDecl.isMutable) {
-//            sb.append("${Mangler["mutable_k"]} ")
-//        } else {
-//            sb.append("${Mangler["immutable_k"]} ")
-//        }
+        if (variableDecl.modifiers.contains(Modifier.MUTABLE)) {
+            sb.append(Mangler["mutable_k"])
+            sb.append(" ")
+        } else {
+            sb.append(Mangler["immutable_k"])
+            sb.append(" ")
+        }
         variableDecl.type.accept(this)
         sb.append(" ${variableDecl.name}=")
         variableDecl.init!!.accept(this)

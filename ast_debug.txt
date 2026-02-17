@@ -32,21 +32,16 @@ Module 'input_test' {
     Alias = Unit
   }
   TypeAlias {
-    Original = NamedType(Name = _UInt)
+    Original = BuiltinType(Name = _UInt)
     Alias = UInt32
   }
   TypeAlias {
-    Original = NamedType(Name = _ULong)
+    Original = BuiltinType(Name = _ULong)
     Alias = UInt64
   }
   TypeAlias {
-    Original = NamedType(Name = _UByte)
+    Original = BuiltinType(Name = _UByte)
     Alias = UInt8
-  }
-  Record {
-    Type = NamedType(Name = RecordA),
-    FxMembers = [],
-    VarMembers = []
   }
   FunctionDecl {
     Name = demoDefer
@@ -86,42 +81,16 @@ Module 'input_test' {
       }
     }
   }
-  VarDecl {
-    Name = x
-    Type = NamedType(Name = Int32)
-    Init = Literal(Value = "10", Type = L_INTEGER)
-    Modifiers = []
-  }
-  WhileStmt {
-    Condition =     BinaryOp(Op = '>') {
-      Left = Identifier(Name = x)
-      Right = Literal(Value = "0", Type = L_INTEGER)
-    }
-    Body =     ExprStmt {
-      Call {
-        Callee = Identifier(Name = @stdio_printf)
-        TypeArgs = 
-        Args = Literal(Value = "x = %d\n", Type = L_STRING), Identifier(Name = x)
-      }
-    }
-    ExprStmt {
-      UnaryOp(Op = '--', Mode = postfix) {
-        Expr = Identifier(Name = x)
-      }
-    }
-    IfStmt {
-      Condition =       BinaryOp(Op = '==') {
-        Left = Identifier(Name = x)
-        Right = Literal(Value = "5", Type = L_INTEGER)
-      }
-      Then =       ExprStmt {
-        Call {
-          Callee = Identifier(Name = @stdio_printf)
-          TypeArgs = 
-          Args = Literal(Value = "Breaking the loop at x = %d\n", Type = L_STRING), Identifier(Name = x)
-        }
-      }
-      BreakStmt
+  FunctionDecl {
+    Name = main
+    Generics = 
+    ReturnType = NamedType(Name = Unit)
+    Params = 
+    Body =     VarDecl {
+      Name = x
+      Type = NamedType(Name = Int32)
+      Init = Literal(Value = "10", Type = L_INTEGER)
+      Modifiers = []
     }
   }
 }

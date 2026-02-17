@@ -105,6 +105,11 @@ sealed class Token(
 
         companion object {
             val allKeywords = entries.filter { it.name.startsWith("K_") }
+
+            val allModifiers = listOf(
+                K_MUT
+            )
+
         }
     }
 
